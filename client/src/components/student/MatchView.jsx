@@ -21,7 +21,25 @@ export default function MatchView({ state, dispatch }) {
   const [pickedRegion, setPickedRegion] = useState(null);
   useEffect(() => setPickedRegion(null), [turn?.stepIndex, turn?.kind]);
 
-  const chapter = eventCard?.chapter || turn?.chapter;
+  // The server pushes the NEXT chapter's chapter:event AND its first turn:begin
+  // synchronously with the CURRENT chapter's LAST turn:resolution — it doesn't
+  // wait for the student to dismiss anything. So while a chapter-ending verdict
+  // is on screen, eventCard AND turn have BOTH already raced ahead, and
+  // preferring either would make the chip read one chapter ahead. Only
+  // feedback.stepIndex is baked into the feedback payload itself and can't
+  // race — derive the chapter from it (2 steps per chapter, the same rule the
+  // server's chapterOf uses). Once feedback is dismissed, eventCard/turn are
+  // exactly what's on screen next, so THEIR chapter is what should show.
+  const chapters = meta.chapters?.[mySide] || [];
+  const stepsPerChapter = meta.stepsPerChapter || 2;
+  const chapterIndexFor = (stepIndex) => Math.floor(stepIndex / stepsPerChapter);
+  const liveChapterIndex = feedback ? chapterIndexFor(feedback.stepIndex)
+    : turn?.yourTurn ? chapterIndexFor(turn.stepIndex)
+    : eventCard ? eventCard.chapter.index
+    : null;
+  const chapter = liveChapterIndex != null && chapters[liveChapterIndex]
+    ? { index: liveChapterIndex, count: chapters.length, ...chapters[liveChapterIndex] }
+    : (eventCard?.chapter || turn?.chapter); // fallback if meta.chapters is ever absent
   const mapTurnActive = !feedback && !eventCard && !!turn?.yourTurn && turn.kind === 'map';
   const lowStrength = match.meters.strength > 0 && match.meters.strength <= 15;
 

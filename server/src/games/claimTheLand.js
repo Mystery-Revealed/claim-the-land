@@ -618,7 +618,18 @@ const claimTheLand = {
   modes: ['solo', 'versus'],
   sides: SIDES,
   totalActions: TOTAL_ACTIONS,
-  meta: { regions: REGIONS, markers: MARKERS, meters: METERS, nations: NATIONS },
+  meta: {
+    regions: REGIONS, markers: MARKERS, meters: METERS, nations: NATIONS,
+    // Chapter labels per nation + the steps-per-chapter rule, so the client can
+    // derive "which chapter does this feedback belong to" from the resolution's
+    // own stepIndex (race-proof) instead of eventCard/turn, which the server
+    // pushes ahead to the NEXT chapter in the same batch as a chapter-ending
+    // resolution (see MatchView).
+    stepsPerChapter: 2,
+    chapters: Object.fromEntries(
+      SIDES.map((s) => [s, CHAPTERS[s].map((ch) => ({ title: ch.title, year: ch.year }))])
+    ),
+  },
 
   // mode: 'versus' → both sides human; 'solo' → soloSide is human, other is AI.
   initMatch({ mode, soloSide }) {
